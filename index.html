@@ -3,30 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee Details - MS Access Database</title>
-    <!-- Tailwind CSS CDN -->
+    <title>Ultimax HR Web Application</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <style>
-        /* Classic Desktop MS Access Form Theme */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #000000;
-            color: #475569;
-            user-select: none;
+            color: #e2e8f0;
         }
 
-        /* Access Form Field Styling */
         .access-input {
             background-color: #2b2b2b !important;
-            color: #dc143c !important;
+            color: #ffffff !important;
             border: 1px solid #dc143c;
             border-radius: 0px;
             padding: 2px 6px;
             font-size: 11px;
             font-family: 'Consolas', 'Courier New', monospace;
-            height: 22px;
+            height: 24px;
             width: 100%;
         }
 
@@ -49,17 +49,18 @@
             font-weight: 700;
             font-size: 12px;
             text-align: center;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
+            border-bottom: 1px dashed #475569;
+            padding-bottom: 2px;
         }
 
-        /* Access Button Styling */
         .access-btn {
             background: linear-gradient(to bottom, #fde047 0%, #eab308 100%);
             color: #000000;
             border: 1px solid #a16207;
             font-size: 11px;
             font-weight: 600;
-            padding: 2px 10px;
+            padding: 3px 12px;
             cursor: pointer;
             box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 1px 2px rgba(0,0,0,0.3);
             border-radius: 2px;
@@ -69,661 +70,256 @@
             background: linear-gradient(to bottom, #fef08a 0%, #facc15 100%);
         }
 
-        .access-btn:active {
-            background: #ca8a04;
-            box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);
-        }
-
         .red-border-panel {
             border: 1px solid #dc2626;
-            background-color: #333333;
-            padding: 6px;
-            margin-bottom: 6px;
-            position: relative;
+            background-color: #1e1e1e;
+            padding: 8px;
+            margin-bottom: 8px;
         }
 
-        /* Scrollbars */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #1e1e1e;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #4b5563;
-            border-radius: 2px;
-        }
-
-        /* Header Pattern Background */
         .header-bg {
             background: radial-gradient(ellipse at center, #334155 0%, #0f172a 70%, #000000 100%);
             border-bottom: 2px solid #ef4444;
-        }
-
-        @media print {
-            .no-print { display: none !important; }
-            body { background-color: white !important; color: black !important; }
-            .access-input { background-color: white !important; color: black !important; border: 1px solid #000 !important; }
-            .red-border-panel { border: 1px solid #000 !important; }
-            .access-label, .section-header { color: #000 !important; }
         }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
-    <!-- Window Title Bar -->
-    <div class="no-print bg-slate-800 text-slate-200 px-3 py-1 flex justify-between items-center text-xs border-b border-slate-700">
-        <div class="flex items-center space-x-2">
-            <i class="fas fa-table text-red-500"></i>
-            <span class="font-bold">Employee Details</span>
+    <!-- Navigation Header -->
+    <div class="header-bg px-4 py-2 flex items-center justify-between border-b border-red-600">
+        <div class="flex items-center space-x-3">
+            <span class="bg-red-600 text-white font-bold text-xs px-2 py-1 rounded">ULTIMAX</span>
+            <span class="text-white font-bold text-sm tracking-wide">HR MANAGEMENT SYSTEM</span>
         </div>
-        <div class="flex items-center space-x-3 text-slate-400">
-            <button onclick="window.minimize && window.minimize()" class="hover:text-white"><i class="fas fa-minus"></i></button>
-            <button onclick="window.maximize && window.maximize()" class="hover:text-white"><i class="far fa-window-maximize"></i></button>
-            <button onclick="closeApp()" class="hover:text-red-400"><i class="fas fa-times"></i></button>
+        <div class="flex space-x-2">
+            <button onclick="switchTab('dashboard')" class="access-btn"><i class="fas fa-chart-line mr-1"></i> Dashboard</button>
+            <button onclick="switchTab('view')" class="access-btn"><i class="fas fa-address-book mr-1"></i> Employee Directory</button>
+            <button onclick="switchTab('entry')" class="access-btn"><i class="fas fa-user-plus mr-1"></i> New Registration</button>
         </div>
+        <div id="live-clock" class="text-amber-300 font-mono text-xs font-semibold">00:00:00</div>
     </div>
 
-    <!-- Access Top Action Navigation Ribbon -->
-    <div class="no-print bg-amber-100/90 border-b border-amber-300 p-1.5 flex flex-wrap items-center gap-2 text-xs">
-        <div class="flex items-center space-x-1 mr-2 bg-slate-200 p-0.5 border border-slate-400 rounded">
-            <span class="text-slate-800 font-semibold px-1">Go to</span>
-            <select id="goto-selector" onchange="navigateToRecord(this.value)" class="bg-white text-slate-900 border border-slate-400 text-xs px-1 py-0.5 rounded outline-none w-32">
-                <option value="">-- Select --</option>
-            </select>
-        </div>
+    <!-- MAIN CONTAINER -->
+    <main class="flex-grow p-3 max-w-[1600px] mx-auto w-full">
 
-        <button onclick="saveAndNewRecord()" class="access-btn"><i class="fas fa-save mr-1"></i>Save and New</button>
-        <button onclick="emailEmployee()" class="access-btn"><i class="fas fa-envelope mr-1"></i>E-mail</button>
-        <button onclick="saveOutlookContact()" class="access-btn"><i class="fas fa-address-card mr-1"></i>Save As Outlook Contact</button>
-        <button onclick="openFindModal()" class="access-btn"><i class="fas fa-search mr-1"></i>Find Record</button>
-        <button onclick="closeApp()" class="access-btn"><i class="fas fa-door-open mr-1"></i>Close</button>
-        <button onclick="window.print()" class="access-btn"><i class="fas fa-print mr-1"></i>Print Record</button>
+        <!-- TAB 1: DASHBOARD -->
+        <section id="tab-dashboard" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="red-border-panel p-4 text-center">
+                    <div class="text-slate-400 text-xs font-bold uppercase">Total Personnel</div>
+                    <div id="stat-total" class="text-3xl font-bold text-amber-400 my-1">0</div>
+                    <div class="text-[10px] text-slate-500">Active Database Records</div>
+                </div>
+                <div class="red-border-panel p-4 text-center">
+                    <div class="text-slate-400 text-xs font-bold uppercase">Operations Division</div>
+                    <div id="stat-ops" class="text-3xl font-bold text-sky-400 my-1">0</div>
+                    <div class="text-[10px] text-slate-500">Field & Security Staff</div>
+                </div>
+                <div class="red-border-panel p-4 text-center">
+                    <div class="text-slate-400 text-xs font-bold uppercase">Corporate & Admin</div>
+                    <div id="stat-admin" class="text-3xl font-bold text-emerald-400 my-1">0</div>
+                    <div class="text-[10px] text-slate-500">HQ & Administrative Staff</div>
+                </div>
+                <div class="red-border-panel p-4 text-center">
+                    <div class="text-slate-400 text-xs font-bold uppercase">System Status</div>
+                    <div class="text-lg font-bold text-emerald-400 my-2"><i class="fas fa-check-circle mr-1"></i> Online</div>
+                    <div class="text-[10px] text-slate-500">Connected to Firebase</div>
+                </div>
+            </div>
+        </section>
 
-        <div class="ml-auto text-xs text-slate-700 font-mono flex items-center space-x-2">
-            <span id="record-indicator" class="bg-white px-2 py-0.5 border border-slate-400 font-bold">Record: 1 of 1</span>
-        </div>
-    </div>
+        <!-- TAB 2: EMPLOYEE DIRECTORY -->
+        <section id="tab-view" class="hidden space-y-2">
+            <div class="red-border-panel">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="section-header border-none m-0">Employee Master Directory</span>
+                    <input type="text" id="search-bar" onkeyup="filterDirectory()" placeholder="Filter by name or ID..." class="access-input w-64">
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs font-mono">
+                        <thead class="bg-slate-800 text-sky-400 border-b border-red-600">
+                            <tr>
+                                <th class="p-2">ID</th>
+                                <th class="p-2">Full Name</th>
+                                <th class="p-2">Department</th>
+                                <th class="p-2">Job Title</th>
+                                <th class="p-2">Mobile Phone</th>
+                                <th class="p-2">Work Location</th>
+                            </tr>
+                        </thead>
+                        <tbody id="directory-table-body" class="divide-y divide-slate-800 text-slate-200">
+                            <!-- Rows loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
 
-    <!-- Header Banner -->
-    <div class="header-bg px-4 py-2 relative flex items-center justify-between border-b border-red-600">
-        <div class="absolute left-2 top-1 text-red-500 font-bold text-xs uppercase tracking-wider border-b border-red-500">
-            Personal Information
-        </div>
-        
-        <div class="mx-auto bg-slate-900/90 border border-slate-600 text-white font-bold text-lg px-8 py-1 rounded shadow-lg tracking-wide uppercase">
-            Ultimax Employee Biodata/Profile
-        </div>
-
-        <div id="live-clock" class="text-amber-300 font-mono text-xs font-semibold">
-            00:00:00
-        </div>
-    </div>
-
-    <!-- Main Form Workspace -->
-    <form id="employee-form" onsubmit="event.preventDefault();" class="flex-grow p-2 space-y-2 max-w-[1600px] mx-auto w-full">
-        
-        <!-- Top Container with Red Outer Border -->
-        <div class="red-border-panel">
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-2">
-                
-                <!-- LEFT COLUMN: Personal Details & Work Info (5 Cols) -->
-                <div class="lg:col-span-5 space-y-2">
-                    <div class="red-border-panel">
-                        <div class="section-header">Personal Details</div>
+        <!-- TAB 3: NEW REGISTRATION FORM -->
+        <section id="tab-entry" class="hidden">
+            <form id="employee-form" onsubmit="event.preventDefault(); submitEntry();">
+                <div class="red-border-panel">
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
                         
-                        <div class="grid grid-cols-12 gap-1 items-center">
-                            
-                            <!-- Fields Left Side -->
-                            <div class="col-span-8 space-y-1">
+                        <!-- Personal Details -->
+                        <div class="lg:col-span-4 red-border-panel">
+                            <div class="section-header">Personal Information</div>
+                            <div class="space-y-1.5">
+                                <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Employee ID:</label><input type="text" id="employeeId" class="col-span-7 access-input font-bold" required></div>
+                                <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">First Name:</label><input type="text" id="firstName" class="col-span-7 access-input" required></div>
+                                <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Last Name:</label><input type="text" id="lastName" class="col-span-7 access-input" required></div>
                                 <div class="grid grid-cols-12 items-center">
-                                    <label class="col-span-5 access-label">Last Name:</label>
-                                    <input type="text" id="lastName" class="col-span-7 access-input">
-                                </div>
-                                <div class="grid grid-cols-12 items-center">
-                                    <label class="col-span-5 access-label">First Name:</label>
-                                    <input type="text" id="firstName" class="col-span-7 access-input">
-                                </div>
-                                <div class="grid grid-cols-12 items-center">
-                                    <label class="col-span-5 access-label">SEX:</label>
+                                    <label class="col-span-5 access-label">Gender:</label>
                                     <select id="sex" class="col-span-7 access-input">
-                                        <option value=""></option>
                                         <option value="Male">Male</option>
                                         <option value="Female">Female</option>
                                     </select>
                                 </div>
-                                <div class="grid grid-cols-12 items-center">
-                                    <label class="col-span-5 access-label">Date Of Birth:</label>
-                                    <input type="date" id="dob" class="col-span-7 access-input">
-                                </div>
-                                <div class="grid grid-cols-12 items-center">
-                                    <label class="col-span-5 access-label">Number of Children:</label>
-                                    <input type="number" id="children" value="0" class="col-span-7 access-input">
-                                </div>
-                                <div class="grid grid-cols-12 items-center">
-                                    <label class="col-span-5 access-label">Height:</label>
-                                    <input type="number" id="height" value="0" class="col-span-7 access-input">
-                                </div>
-                                <div class="grid grid-cols-12 items-center">
-                                    <label class="col-span-5 access-label">Weight:</label>
-                                    <input type="number" id="weight" value="0" class="col-span-7 access-input">
-                                </div>
-                                <div class="grid grid-cols-12 items-center">
-                                    <label class="col-span-5 access-label">Marital Status:</label>
-                                    <select id="maritalStatus" class="col-span-7 access-input">
-                                        <option value=""></option>
-                                        <option value="Single">Single</option>
-                                        <option value="Married">Married</option>
-                                        <option value="Divorced">Divorced</option>
-                                        <option value="Widowed">Widowed</option>
-                                    </select>
-                                </div>
-                                <div class="grid grid-cols-12 items-center">
-                                    <label class="col-span-5 access-label">Religion:</label>
-                                    <input type="text" id="religion" class="col-span-7 access-input">
-                                </div>
-                                <div class="grid grid-cols-12 items-center">
-                                    <label class="col-span-5 access-label">Clan:</label>
-                                    <input type="text" id="clan" class="col-span-7 access-input">
-                                </div>
-                                <div class="grid grid-cols-12 items-center">
-                                    <label class="col-span-5 access-label">Tribe:</label>
-                                    <input type="text" id="tribe" class="col-span-7 access-input">
-                                </div>
-                                <div class="grid grid-cols-12 items-center">
-                                    <label class="col-span-5 access-label">Birth Place:</label>
-                                    <input type="text" id="birthPlace" class="col-span-7 access-input">
-                                </div>
-                                <div class="grid grid-cols-12 items-center">
-                                    <label class="col-span-5 access-label">Mobile Phone:</label>
-                                    <input type="text" id="mobilePhone" value="0" class="col-span-7 access-input">
-                                </div>
-                                <div class="grid grid-cols-12 items-center">
-                                    <label class="col-span-5 access-label">Mobile Phone1:</label>
-                                    <input type="text" id="mobilePhone1" class="col-span-7 access-input">
-                                </div>
-                                <div class="grid grid-cols-12 items-center">
-                                    <label class="col-span-5 access-label">Email Address:</label>
-                                    <input type="email" id="email" class="col-span-7 access-input">
-                                </div>
-                                <div class="grid grid-cols-12 items-center">
-                                    <label class="col-span-5 access-label">Home Ward:</label>
-                                    <input type="text" id="homeWard" class="col-span-7 access-input">
-                                </div>
-                                <div class="grid grid-cols-12 items-center">
-                                    <label class="col-span-5 access-label">Home LLG:</label>
-                                    <input type="text" id="homeLLG" class="col-span-7 access-input">
-                                </div>
-                                <div class="grid grid-cols-12 items-center">
-                                    <label class="col-span-5 access-label">Home District:</label>
-                                    <input type="text" id="homeDistrict" class="col-span-7 access-input">
-                                </div>
-                                <div class="grid grid-cols-12 items-center">
-                                    <label class="col-span-5 access-label">Home Province:</label>
-                                    <input type="text" id="homeProvince" class="col-span-7 access-input">
-                                </div>
-                                <div class="grid grid-cols-12 items-center">
-                                    <label class="col-span-5 access-label">Nationality:</label>
-                                    <input type="text" id="nationality" class="col-span-7 access-input">
-                                </div>
-                            </div>
-
-                            <!-- Photo Box & Right Work Fields -->
-                            <div class="col-span-4 space-y-2 flex flex-col items-center">
-                                <!-- Profile Photo Frame -->
-                                <div class="relative w-32 h-36 border-2 border-white bg-white flex flex-col items-center justify-center overflow-hidden cursor-pointer group" onclick="triggerPhotoUpload()">
-                                    <img id="photo-preview" class="w-full h-full object-cover hidden" alt="Profile Preview">
-                                    <div id="photo-placeholder" class="text-center text-slate-800">
-                                        <i class="fas fa-user text-6xl"></i>
-                                        <div class="absolute bottom-1 right-1 bg-black text-white rounded-full w-6 h-6 flex items-center justify-center border border-white">
-                                            <i class="fas fa-plus text-xs"></i>
-                                        </div>
-                                    </div>
-                                    <input type="file" id="photo-file" accept="image/*" class="hidden" onchange="previewPhoto(event)">
-                                </div>
-
-                                <!-- Employment Fields Column under Photo -->
-                                <div class="w-full space-y-1">
-                                    <div class="grid grid-cols-12 items-center">
-                                        <label class="col-span-5 access-label">Title:</label>
-                                        <select id="title" class="col-span-7 access-input">
-                                            <option value=""></option>
-                                            <option value="Mr.">Mr.</option>
-                                            <option value="Mrs.">Mrs.</option>
-                                            <option value="Ms.">Ms.</option>
-                                            <option value="Dr.">Dr.</option>
-                                        </select>
-                                    </div>
-                                    <div class="grid grid-cols-12 items-center">
-                                        <label class="col-span-5 access-label">Employee ID:</label>
-                                        <input type="text" id="employeeId" class="col-span-7 access-input font-bold">
-                                    </div>
-                                    <div class="grid grid-cols-12 items-center">
-                                        <label class="col-span-5 access-label">Employer:</label>
-                                        <input type="text" id="employer" class="col-span-7 access-input">
-                                    </div>
-                                    <div class="grid grid-cols-12 items-center">
-                                        <label class="col-span-5 access-label">Start Date:</label>
-                                        <input type="date" id="startDate" class="col-span-7 access-input">
-                                    </div>
-                                    <div class="grid grid-cols-12 items-center">
-                                        <label class="col-span-5 access-label">Job Title2:</label>
-                                        <select id="jobTitle2" class="col-span-7 access-input">
-                                            <option value=""></option>
-                                            <option value="Officer">Officer</option>
-                                            <option value="Manager">Manager</option>
-                                            <option value="Supervisor">Supervisor</option>
-                                        </select>
-                                    </div>
-                                    <div class="grid grid-cols-12 items-center">
-                                        <label class="col-span-5 access-label">Department:</label>
-                                        <select id="department" class="col-span-7 access-input">
-                                            <option value=""></option>
-                                            <option value="HR">HR</option>
-                                            <option value="Finance">Finance</option>
-                                            <option value="Operations">Operations</option>
-                                            <option value="IT">IT</option>
-                                        </select>
-                                    </div>
-                                    <div class="grid grid-cols-12 items-center">
-                                        <label class="col-span-5 access-label">Division:</label>
-                                        <select id="division" class="col-span-7 access-input">
-                                            <option value=""></option>
-                                            <option value="Corporate">Corporate</option>
-                                            <option value="Field Services">Field Services</option>
-                                        </select>
-                                    </div>
-                                    <div class="grid grid-cols-12 items-center">
-                                        <label class="col-span-5 access-label">HOD:</label>
-                                        <select id="hod" class="col-span-7 access-input">
-                                            <option value="Manager HR">Manager HR</option>
-                                            <option value="Manager Operations">Manager Operations</option>
-                                            <option value="Manager Finance">Manager Finance</option>
-                                        </select>
-                                    </div>
-                                    <div class="grid grid-cols-12 items-center">
-                                        <label class="col-span-5 access-label">Supervisor:</label>
-                                        <input type="text" id="supervisor" class="col-span-7 access-input">
-                                    </div>
-                                    <div class="grid grid-cols-12 items-center">
-                                        <label class="col-span-5 access-label">Work Location:</label>
-                                        <input type="text" id="workLocation" class="col-span-7 access-input">
-                                    </div>
-                                    <div class="grid grid-cols-12 items-center">
-                                        <label class="col-span-5 access-label">Current Rate:</label>
-                                        <input type="text" id="currentRate" value="K0.00" class="col-span-7 access-input">
-                                    </div>
-                                    <div class="grid grid-cols-12 items-center">
-                                        <label class="col-span-5 access-label">Status:</label>
-                                        <input type="text" id="status" class="col-span-7 access-input">
-                                    </div>
-                                    <div class="grid grid-cols-12 items-center">
-                                        <label class="col-span-5 access-label">Exit Date:</label>
-                                        <input type="date" id="exitDate" class="col-span-7 access-input">
-                                    </div>
-                                    <div class="grid grid-cols-12 items-center">
-                                        <label class="col-span-5 access-label">Number Of years:</label>
-                                        <input type="number" id="numYears" value="0" class="col-span-7 access-input">
-                                    </div>
-                                </div>
+                                <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Date Of Birth:</label><input type="date" id="dob" class="col-span-7 access-input"></div>
+                                <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Phone No:</label><input type="text" id="mobilePhone" class="col-span-7 access-input"></div>
+                                <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Email:</label><input type="email" id="email" class="col-span-7 access-input"></div>
                             </div>
                         </div>
+
+                        <!-- Employment & Work Info -->
+                        <div class="lg:col-span-4 red-border-panel">
+                            <div class="section-header">Employment Details</div>
+                            <div class="space-y-1.5">
+                                <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Department:</label><input type="text" id="department" class="col-span-7 access-input"></div>
+                                <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Job Title:</label><input type="text" id="jobTitle" class="col-span-7 access-input"></div>
+                                <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Work Location:</label><input type="text" id="workLocation" class="col-span-7 access-input"></div>
+                                <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Start Date:</label><input type="date" id="startDate" class="col-span-7 access-input"></div>
+                                <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Pay Rate:</label><input type="text" id="currentRate" value="K0.00" class="col-span-7 access-input"></div>
+                            </div>
+                        </div>
+
+                        <!-- Emergency & Banking Details -->
+                        <div class="lg:col-span-4 red-border-panel">
+                            <div class="section-header">Emergency & Banking</div>
+                            <div class="space-y-1.5">
+                                <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Contact Name:</label><input type="text" id="emergFullName" class="col-span-7 access-input"></div>
+                                <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Contact Phone:</label><input type="text" id="emergPhone" class="col-span-7 access-input"></div>
+                                <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Bank Name:</label><input type="text" id="bankName" class="col-span-7 access-input"></div>
+                                <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Account No:</label><input type="text" id="accountNumber" class="col-span-7 access-input"></div>
+                                <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Branch:</label><input type="text" id="branch" class="col-span-7 access-input"></div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
-                <!-- MIDDLE COLUMN: Previous Employment, Education, & Banking (4 Cols) -->
-                <div class="lg:col-span-4 space-y-2">
-                    
-                    <!-- Previous Employment Details -->
-                    <div class="red-border-panel">
-                        <div class="section-header">Previous Employment Details</div>
-                        <div class="space-y-1">
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Employer1:</label><input type="text" id="employer1" class="col-span-7 access-input"></div>
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Position1:</label><input type="text" id="position1" class="col-span-7 access-input"></div>
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Start Date1:</label><input type="date" id="startDate1" class="col-span-7 access-input"></div>
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">End Date1:</label><input type="date" id="endDate1" class="col-span-7 access-input"></div>
-                            
-                            <div class="grid grid-cols-12 items-center pt-1"><label class="col-span-5 access-label">Employer2:</label><input type="text" id="employer2" class="col-span-7 access-input"></div>
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Position2:</label><input type="text" id="position2" class="col-span-7 access-input"></div>
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Start Date2:</label><input type="date" id="startDate2" class="col-span-7 access-input"></div>
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">End Date2:</label><input type="date" id="endDate2" class="col-span-7 access-input"></div>
-                            
-                            <div class="grid grid-cols-12 items-center pt-1"><label class="col-span-5 access-label">Employer3:</label><input type="text" id="employer3" class="col-span-7 access-input"></div>
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Position3:</label><input type="text" id="position3" class="col-span-7 access-input"></div>
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Start Date3:</label><input type="date" id="startDate3" class="col-span-7 access-input"></div>
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">End Date3:</label><input type="date" id="endDate3" class="col-span-7 access-input"></div>
-                        </div>
-                    </div>
-
-                    <!-- Educational Background -->
-                    <div class="red-border-panel">
-                        <div class="section-header">Educational Background</div>
-                        <div class="space-y-1">
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Highest Institution:</label><input type="text" id="highestInstitution" class="col-span-7 access-input"></div>
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Certificate Attained:</label><input type="text" id="certificateAttained" class="col-span-7 access-input"></div>
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Other Training:</label><input type="text" id="otherTraining" class="col-span-7 access-input"></div>
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Certificate Attained2:</label><input type="text" id="certificateAttained2" class="col-span-7 access-input"></div>
-                        </div>
-                    </div>
-
-                    <!-- Bank Account Details -->
-                    <div class="red-border-panel">
-                        <div class="section-header">Bank Account Details</div>
-                        <div class="space-y-1">
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Account Number:</label><input type="text" id="accountNumber" value="0" class="col-span-7 access-input"></div>
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Bank Name:</label><input type="text" id="bankName" class="col-span-7 access-input"></div>
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Branch:</label><input type="text" id="branch" class="col-span-7 access-input"></div>
-                        </div>
-                    </div>
-
+                <div class="flex justify-end mt-2">
+                    <button type="submit" class="access-btn py-1 px-6 text-sm">
+                        <i class="fas fa-save mr-1"></i> Save Employee Record
+                    </button>
                 </div>
+            </form>
+        </section>
 
-                <!-- RIGHT COLUMN: Residence, Emergency, Medical, & Documents (3 Cols) -->
-                <div class="lg:col-span-3 space-y-2">
-                    
-                    <!-- Current Residence -->
-                    <div class="red-border-panel">
-                        <div class="section-header">Current Residence</div>
-                        <div class="space-y-1">
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Lot/Section:</label><input type="text" id="lotSection" class="col-span-7 access-input"></div>
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Village Residence:</label><input type="text" id="villageResidence" class="col-span-7 access-input"></div>
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">LLG Residence:</label><input type="text" id="llgResidence" class="col-span-7 access-input"></div>
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">District Residence:</label><input type="text" id="districtResidence" class="col-span-7 access-input"></div>
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Province Residence:</label><input type="text" id="provinceResidence" class="col-span-7 access-input"></div>
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Zip/Postal Code:</label><input type="text" id="zipCode" class="col-span-7 access-input"></div>
-                        </div>
-                    </div>
+    </main>
 
-                    <!-- Emergency Contact Details -->
-                    <div class="red-border-panel">
-                        <div class="section-header">Emergency Contact Details</div>
-                        <div class="space-y-1">
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Full Name:</label><input type="text" id="emergFullName" class="col-span-7 access-input"></div>
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Phone No:</label><input type="text" id="emergPhone" value="0" class="col-span-7 access-input"></div>
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Address1:</label><input type="text" id="emergAddress" class="col-span-7 access-input"></div>
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Relationship:</label><input type="text" id="emergRelationship" class="col-span-7 access-input"></div>
-                        </div>
-                    </div>
-
-                    <!-- Medical Information -->
-                    <div class="red-border-panel">
-                        <div class="section-header">Medical Information</div>
-                        <div class="space-y-1">
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Medical Officer:</label><input type="text" id="medOfficer" class="col-span-7 access-input"></div>
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Insurance Carrier:</label><input type="text" id="insuranceCarrier" class="col-span-7 access-input"></div>
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Insurance Number:</label><input type="text" id="insuranceNumber" value="0" class="col-span-7 access-input"></div>
-                            <div class="grid grid-cols-12 items-center"><label class="col-span-5 access-label">Medications:</label><input type="text" id="medications" class="col-span-7 access-input"></div>
-                        </div>
-                    </div>
-
-                    <!-- Documents Box -->
-                    <div class="red-border-panel text-center">
-                        <div class="section-header">Documents</div>
-                        <div class="flex flex-col items-center justify-center p-2 bg-white/5 border border-dashed border-slate-500 rounded cursor-pointer hover:bg-white/10" onclick="triggerDocUpload()">
-                            <i class="fas fa-paperclip text-amber-400 text-lg mb-1"></i>
-                            <span class="text-xs text-sky-400">Attach Document Files</span>
-                            <input type="file" id="doc-file" multiple class="hidden" onchange="handleDocsUpload(event)">
-                        </div>
-                        <ul id="doc-list" class="mt-2 text-left text-xs font-mono text-amber-200 space-y-1 max-h-20 overflow-y-auto"></ul>
-                    </div>
-
-                </div>
-
-            </div>
-        </div>
-
-    </form>
-
-    <!-- Bottom Record Navigation Bar -->
-    <div class="no-print bg-amber-100 border-t border-amber-300 p-1 flex items-center justify-between text-xs font-mono">
-        <div class="flex items-center space-x-1">
-            <button onclick="firstRecord()" class="px-2 py-0.5 bg-slate-200 hover:bg-slate-300 border border-slate-400 rounded"><i class="fas fa-step-backward"></i></button>
-            <button onclick="prevRecord()" class="px-2 py-0.5 bg-slate-200 hover:bg-slate-300 border border-slate-400 rounded"><i class="fas fa-caret-left"></i></button>
-            <span class="text-slate-800 font-semibold px-2">Record:</span>
-            <input type="number" id="current-rec-input" value="1" min="1" class="w-12 text-center border border-slate-400 rounded bg-white text-black" onchange="jumpToRecord(this.value)">
-            <span id="total-rec-span" class="text-slate-800">of 1</span>
-            <button onclick="nextRecord()" class="px-2 py-0.5 bg-slate-200 hover:bg-slate-300 border border-slate-400 rounded"><i class="fas fa-caret-right"></i></button>
-            <button onclick="lastRecord()" class="px-2 py-0.5 bg-slate-200 hover:bg-slate-300 border border-slate-400 rounded"><i class="fas fa-step-forward"></i></button>
-            <button onclick="saveAndNewRecord()" class="px-2 py-0.5 bg-amber-200 hover:bg-amber-300 border border-amber-500 rounded font-semibold text-amber-900 ml-2"><i class="fas fa-plus text-xs mr-1"></i>New (Unfiltered)</button>
-        </div>
-        <div class="text-slate-600 italic text-[11px]">
-            No Filter | MS Access Form View
-        </div>
-    </div>
-
-    <!-- Find Record Modal -->
-    <div id="find-modal" class="fixed inset-0 bg-black/70 flex items-center justify-center hidden z-50">
-        <div class="bg-slate-800 border-2 border-amber-400 p-4 rounded shadow-2xl w-96 text-xs text-white">
-            <div class="flex justify-between items-center border-b border-slate-600 pb-2 mb-3 font-bold text-amber-400">
-                <span><i class="fas fa-search mr-1"></i> Find Record</span>
-                <button onclick="closeFindModal()" class="text-slate-400 hover:text-white"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="space-y-3">
-                <div>
-                    <label class="block mb-1 text-slate-300">Search by First or Last Name:</label>
-                    <input type="text" id="search-query" class="w-full bg-slate-900 border border-amber-400 px-2 py-1 text-white font-mono rounded" placeholder="Type name...">
-                </div>
-                <div class="flex justify-end space-x-2 pt-2">
-                    <button onclick="executeSearch()" class="access-btn"><i class="fas fa-search mr-1"></i>Search</button>
-                    <button onclick="closeFindModal()" class="px-3 py-1 bg-slate-600 text-white rounded hover:bg-slate-500">Cancel</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Embedded Application Logic -->
+    <!-- Script Logic -->
     <script>
-        // State variables
-        let records = [];
-        let currentIndex = 0;
+        // FIREBASE CONFIGURATION (Replace with your Firebase Console Keys)
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            messagingSenderId: "SENDER_ID",
+            appId: "APP_ID"
+        };
 
-        // Initialize Live Clock
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let employeesList = [];
+
+        // Clock Function
         setInterval(() => {
-            const now = new Date();
-            document.getElementById('live-clock').innerText = now.toLocaleTimeString();
+            document.getElementById('live-clock').innerText = new Date().toLocaleTimeString();
         }, 1000);
 
-        // Photo Upload Handling
-        function triggerPhotoUpload() {
-            document.getElementById('photo-file').click();
-        }
+        // Tab Navigation
+        function switchTab(tabName) {
+            document.getElementById('tab-dashboard').classList.add('hidden');
+            document.getElementById('tab-view').classList.add('hidden');
+            document.getElementById('tab-entry').classList.add('hidden');
 
-        function previewPhoto(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = document.getElementById('photo-preview');
-                    img.src = e.target.result;
-                    img.classList.remove('hidden');
-                    document.getElementById('photo-placeholder').classList.add('hidden');
-                };
-                reader.readAsDataURL(file);
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            if (tabName === 'view' || tabName === 'dashboard') {
+                loadRecords();
             }
         }
 
-        // Documents Upload Handling
-        function triggerDocUpload() {
-            document.getElementById('doc-file').click();
-        }
+        // Fetch Records
+        async function loadRecords() {
+            try {
+                const snapshot = await db.collection("employees").get();
+                employeesList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        function handleDocsUpload(event) {
-            const files = event.target.files;
-            const list = document.getElementById('doc-list');
-            list.innerHTML = '';
-            for (let file of files) {
-                const li = document.createElement('li');
-                li.innerHTML = `<i class="fas fa-file-alt mr-1 text-slate-400"></i> ${file.name}`;
-                list.appendChild(li);
+                // Update Stats
+                document.getElementById('stat-total').innerText = employeesList.length;
+                document.getElementById('stat-ops').innerText = employeesList.filter(e => e.department && e.department.toLowerCase().includes('op')).length;
+                document.getElementById('stat-admin').innerText = employeesList.filter(e => e.department && !e.department.toLowerCase().includes('op')).length;
+
+                // Render Table
+                renderDirectory(employeesList);
+            } catch (err) {
+                console.error("Error loading records:", err);
             }
         }
 
-        // Record Navigation & Management
-        function updateUI() {
-            const total = records.length || 1;
-            const displayIndex = records.length ? currentIndex + 1 : 0;
-            
-            document.getElementById('record-indicator').innerText = `Record: ${displayIndex} of ${total}`;
-            document.getElementById('current-rec-input').value = displayIndex;
-            document.getElementById('total-rec-span').innerText = `of ${total}`;
-            
-            updateSelectDropdown();
-            
-            if (records.length > 0 && records[currentIndex]) {
-                loadRecordIntoForm(records[currentIndex]);
-            }
-        }
-
-        function updateSelectDropdown() {
-            const select = document.getElementById('goto-selector');
-            select.innerHTML = '<option value="">-- Select --</option>';
-            records.forEach((rec, idx) => {
-                const name = `${rec.lastName || ''}, ${rec.firstName || ''}`.trim() || `Record #${idx+1}`;
-                const opt = document.createElement('option');
-                opt.value = idx;
-                opt.innerText = name;
-                if (idx === currentIndex) opt.selected = true;
-                select.appendChild(opt);
+        function renderDirectory(list) {
+            const tbody = document.getElementById('directory-table-body');
+            tbody.innerHTML = '';
+            list.forEach(emp => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/50";
+                tr.innerHTML = `
+                    <td class="p-2 text-amber-400 font-bold">${emp.employeeId || '-'}</td>
+                    <td class="p-2">${emp.lastName \vert{}\vert{} ''},${emp.firstName || ''}</td>
+                    <td class="p-2">${emp.department || '-'}</td>
+                    <td class="p-2">${emp.jobTitle || '-'}</td>
+                    <td class="p-2">${emp.mobilePhone || '-'}</td>
+                    <td class="p-2">${emp.workLocation || '-'}</td>
+                `;
+                tbody.appendChild(tr);
             });
         }
 
-        function collectFormData() {
-            const form = document.getElementById('employee-form');
-            const inputs = form.querySelectorAll('input, select');
-            const data = {};
-            inputs.forEach(input => {
-                if (input.id && input.type !== 'file') {
-                    data[input.id] = input.value;
-                }
-            });
-            const img = document.getElementById('photo-preview');
-            data.photoSrc = img.classList.contains('hidden') ? '' : img.src;
-            return data;
-        }
-
-        function loadRecordIntoForm(data) {
-            const form = document.getElementById('employee-form');
-            const inputs = form.querySelectorAll('input, select');
-            inputs.forEach(input => {
-                if (input.id && data[input.id] !== undefined) {
-                    input.value = data[input.id];
-                }
-            });
-
-            const img = document.getElementById('photo-preview');
-            const placeholder = document.getElementById('photo-placeholder');
-            if (data.photoSrc) {
-                img.src = data.photoSrc;
-                img.classList.remove('hidden');
-                placeholder.classList.add('hidden');
-            } else {
-                img.classList.add('hidden');
-                placeholder.classList.remove('hidden');
-            }
-        }
-
-        function saveAndNewRecord() {
-            const data = collectFormData();
-            if (records.length === 0) {
-                records.push(data);
-            } else {
-                records[currentIndex] = data;
-            }
-            
-            // Clear Form for New Entry
-            document.getElementById('employee-form').reset();
-            document.getElementById('photo-preview').classList.add('hidden');
-            document.getElementById('photo-placeholder').classList.remove('hidden');
-            document.getElementById('doc-list').innerHTML = '';
-            
-            records.push({});
-            currentIndex = records.length - 1;
-            updateUI();
-        }
-
-        function firstRecord() { if (currentIndex > 0) { currentIndex = 0; updateUI(); } }
-        function prevRecord() { if (currentIndex > 0) { currentIndex--; updateUI(); } }
-        function nextRecord() { if (currentIndex < records.length - 1) { currentIndex++; updateUI(); } }
-        function lastRecord() { if (records.length > 0) { currentIndex = records.length - 1; updateUI(); } }
-        function jumpToRecord(val) {
-            const idx = parseInt(val) - 1;
-            if (idx >= 0 && idx < records.length) {
-                currentIndex = idx;
-                updateUI();
-            }
-        }
-        function navigateToRecord(idx) {
-            if (idx !== "") {
-                currentIndex = parseInt(idx);
-                updateUI();
-            }
-        }
-
-        // Action Ribbon Handlers
-        function emailEmployee() {
-            const email = document.getElementById('email').value;
-            if (email) {
-                window.location.href = `mailto:${email}`;
-            } else {
-                alert("No email address provided for this record.");
-            }
-        }
-
-        function saveOutlookContact() {
-            const fn = document.getElementById('firstName').value;
-            const ln = document.getElementById('lastName').value;
-            const email = document.getElementById('email').value;
-            const phone = document.getElementById('mobilePhone').value;
-            
-            const vcard = `BEGIN:VCARD\nVERSION:3.0\nN:${ln};${fn};;;\nFN:${fn} ${ln}\nTEL;TYPE=CELL:${phone}\nEMAIL:${email}\nEND:VCARD`;
-            const blob = new Blob([vcard], { type: 'text/vcard' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${fn}_${ln}.vcf`;
-            a.click();
-        }
-
-        function closeApp() {
-            if (confirm("Are you sure you want to close this form?")) {
-                window.close();
-            }
-        }
-
-        // Modal Search
-        function openFindModal() {
-            document.getElementById('find-modal').classList.remove('hidden');
-            document.getElementById('search-query').focus();
-        }
-
-        function closeFindModal() {
-            document.getElementById('find-modal').classList.add('hidden');
-        }
-
-        function executeSearch() {
-            const query = document.getElementById('search-query').value.toLowerCase().trim();
-            if (!query) return;
-
-            const foundIdx = records.findIndex(r => 
-                (r.firstName && r.firstName.toLowerCase().includes(query)) ||
-                (r.lastName && r.lastName.toLowerCase().includes(query))
+        function filterDirectory() {
+            const query = document.getElementById('search-bar').value.toLowerCase();
+            const filtered = employeesList.filter(e => 
+                (e.firstName && e.firstName.toLowerCase().includes(query)) ||
+                (e.lastName && e.lastName.toLowerCase().includes(query)) ||
+                (e.employeeId && e.employeeId.toLowerCase().includes(query))
             );
+            renderDirectory(filtered);
+        }
 
-            if (foundIdx !== -1) {
-                currentIndex = foundIdx;
-                updateUI();
-                closeFindModal();
-            } else {
-                alert("No matching record found.");
+        // Submit New Record
+        async function submitEntry() {
+            const form = document.getElementById('employee-form');
+            const inputs = form.querySelectorAll('input, select');
+            const data = { createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+
+            inputs.forEach(input => {
+                if (input.id) data[input.id] = input.value;
+            });
+
+            try {
+                await db.collection("employees").add(data);
+                alert("Employee record saved successfully!");
+                form.reset();
+                switchTab('view');
+            } catch (err) {
+                console.error("Error saving record:", err);
+                alert("Error saving record. Check Firebase permissions.");
             }
         }
 
-        // Auto-save current form state into record 1 on start
-        window.onload = function() {
-            records.push(collectFormData());
-            updateUI();
-        };
+        window.onload = loadRecords;
     </script>
 </body>
 </html>
